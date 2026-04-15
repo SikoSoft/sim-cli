@@ -1,3 +1,6 @@
+import { BoundaryChecker } from "./boundary";
+import { SimulationState } from "./simulation";
+
 /**
  * Integer commands accepted on stdin.
  *
@@ -14,11 +17,7 @@ export enum Command {
   ROTATE_COUNTER_CLOCKWISE = 4,
 }
 
-const VALID_COMMAND_VALUES = new Set<number>(
-  (Object.values(Command) as Array<string | number>).filter(
-    (v): v is number => typeof v === "number"
-  )
-);
-
-export const toCommand = (value: number): Command | null =>
-  VALID_COMMAND_VALUES.has(value) ? (value as Command) : null;
+export type CommandHandler = (
+  state: SimulationState,
+  boundary: BoundaryChecker
+) => SimulationState;

@@ -3,9 +3,9 @@ import {
   parseStartPosition,
   parseCommand,
   tokenize,
-  ParseError,
 } from "../../src/lib/parser";
 import { Command } from "../../src/models/command";
+import { ParseError } from "../../src/lib/error";
 
 describe("parseTableConfig", () => {
   it("parses space-separated integers", () => {

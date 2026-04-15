@@ -1,16 +1,19 @@
-import { Command, toCommand } from "../models/command";
+import { Command } from "../models/command";
 import { Position } from "../models/position";
 import { TableConfig } from "../models/simulation";
+import { ParseError } from "./error";
 
 export const tokenize = (line: string): string[] =>
   line.replace(/,/g, " ").trim().split(/\s+/).filter(Boolean);
 
-export class ParseError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "ParseError";
-  }
-}
+const VALID_COMMAND_VALUES = new Set<number>(
+  (Object.values(Command) as Array<string | number>).filter(
+    (v): v is number => typeof v === "number"
+  )
+);
+
+export const toCommand = (value: number): Command | null =>
+  VALID_COMMAND_VALUES.has(value) ? (value as Command) : null;
 
 const parseTwoIntegers = (line: string, context: string): [number, number] => {
   const parts = line.trim().split(/\s+/);

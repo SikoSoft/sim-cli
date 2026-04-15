@@ -3,28 +3,20 @@ import {
   parseCommand,
   parseStartPosition,
   parseTableConfig,
-  ParseError,
   tokenize,
 } from "./parser";
 import { RectangularTable } from "./table";
 import { applyCommand, createInitialState } from "./simulator";
+import { InputPhase, OutputFn } from "../models/io";
 import {
   SimulationResult,
   SimulationState,
   TableConfig,
 } from "../models/simulation";
-
-export type OutputFn = (line: string) => void;
+import { ParseError } from "./error";
 
 const formatResult = (result: SimulationResult): string =>
   result.success ? `${result.position.x} ${result.position.y}` : "-1 -1";
-
-export enum InputPhase {
-  AWAITING_TABLE = "awaiting_table",
-  AWAITING_POSITION = "awaiting_position",
-  RUNNING = "running",
-  DONE = "done",
-}
 
 /**
  * Stateful simulation runner that processes stdin as a token stream.
@@ -141,9 +133,9 @@ export const handleFatalError = (err: unknown): never => {
 
 export const runFromStdin = (output: OutputFn = console.log): void => {
   const runner = new SimulationRunner(output);
-  const rl = createInterface({ input: process.stdin, terminal: false });
+  const lineReader = createInterface({ input: process.stdin, terminal: false });
 
-  rl.on("line", (line) => {
+  lineReader.on("line", (line) => {
     try {
       runner.feed(line);
     } catch (err) {
@@ -151,7 +143,7 @@ export const runFromStdin = (output: OutputFn = console.log): void => {
     }
   });
 
-  rl.on("close", () => {
+  lineReader.on("close", () => {
     try {
       runner.finalize();
     } catch (err) {

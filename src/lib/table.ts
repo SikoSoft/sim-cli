@@ -1,9 +1,6 @@
+import { BoundaryChecker } from "../models/boundary";
 import { Position } from "../models/position";
 import { TableConfig } from "../models/simulation";
-
-export interface BoundaryChecker {
-  isInBounds(position: Position): boolean;
-}
 
 export class RectangularTable implements BoundaryChecker {
   constructor(private readonly config: TableConfig) {}

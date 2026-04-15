@@ -1,23 +1,31 @@
-import { Command } from "../models/command";
-import {
-  directionDelta,
-  Direction,
-  rotateClockwise,
-  rotateCounterClockwise,
-} from "../models/direction";
-import { translate } from "../models/position";
+import { Command, CommandHandler } from "../models/command";
+import { directionDelta, Direction } from "../models/direction";
+import { translate, Position } from "../models/position";
 import {
   SimulationResult,
   SimulationState,
+  StepResult,
   TableConfig,
 } from "../models/simulation";
-import { BoundaryChecker, RectangularTable } from "./table";
-import { Position } from "../models/position";
+import { BoundaryChecker } from "../models/boundary";
+import { RectangularTable } from "./table";
 
-type CommandHandler = (
-  state: SimulationState,
-  boundary: BoundaryChecker
-) => SimulationState;
+const CLOCKWISE_ORDER: readonly Direction[] = [
+  Direction.NORTH,
+  Direction.EAST,
+  Direction.SOUTH,
+  Direction.WEST,
+];
+
+export const rotateClockwise = (dir: Direction): Direction => {
+  const idx = CLOCKWISE_ORDER.indexOf(dir);
+  return CLOCKWISE_ORDER[(idx + 1) % 4];
+};
+
+export const rotateCounterClockwise = (dir: Direction): Direction => {
+  const idx = CLOCKWISE_ORDER.indexOf(dir);
+  return CLOCKWISE_ORDER[(idx + 3) % 4];
+};
 
 const moveBy =
   (steps: number): CommandHandler =>
@@ -52,12 +60,6 @@ export const COMMAND_HANDLERS: Partial<Record<Command, CommandHandler>> = {
     direction: rotateCounterClockwise(state.direction),
   }),
 };
-
-export interface StepResult {
-  readonly state: SimulationState;
-  readonly done: boolean;
-  readonly failed: boolean;
-}
 
 export const applyCommand = (
   state: SimulationState,

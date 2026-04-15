@@ -15,3 +15,9 @@ export interface SimulationState {
 export type SimulationResult =
   | { readonly success: true;  readonly position: Position }
   | { readonly success: false };
+
+export interface StepResult {
+  readonly state: SimulationState;
+  readonly done: boolean;
+  readonly failed: boolean;
+}

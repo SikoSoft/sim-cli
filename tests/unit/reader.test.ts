@@ -1,5 +1,5 @@
 import { SimulationRunner, handleFatalError } from "../../src/lib/reader";
-import { ParseError } from "../../src/lib/parser";
+import { ParseError } from "../../src/lib/error";
 
 const runLines = (lines: string[]): string | null => {
   let output: string | null = null;
@@ -111,7 +111,9 @@ describe("SimulationRunner", () => {
     let exitSpy: jest.SpyInstance;
 
     beforeEach(() => {
-      stderrSpy = jest.spyOn(process.stderr, "write").mockImplementation(() => true);
+      stderrSpy = jest
+        .spyOn(process.stderr, "write")
+        .mockImplementation(() => true);
       exitSpy = jest.spyOn(process, "exit").mockImplementation((() => {
         throw new Error("process.exit called");
       }) as () => never);
@@ -123,14 +125,20 @@ describe("SimulationRunner", () => {
     });
 
     it("writes a parse error message to stderr and exits with code 1", () => {
-      expect(() => handleFatalError(new ParseError("bad input"))).toThrow("process.exit called");
+      expect(() => handleFatalError(new ParseError("bad input"))).toThrow(
+        "process.exit called"
+      );
       expect(stderrSpy).toHaveBeenCalledWith("Parse error: bad input\n");
       expect(exitSpy).toHaveBeenCalledWith(1);
     });
 
     it("writes an unexpected error message to stderr and exits with code 1", () => {
-      expect(() => handleFatalError(new Error("something went wrong"))).toThrow("process.exit called");
-      expect(stderrSpy).toHaveBeenCalledWith("Unexpected error: Error: something went wrong\n");
+      expect(() => handleFatalError(new Error("something went wrong"))).toThrow(
+        "process.exit called"
+      );
+      expect(stderrSpy).toHaveBeenCalledWith(
+        "Unexpected error: Error: something went wrong\n"
+      );
       expect(exitSpy).toHaveBeenCalledWith(1);
     });
   });

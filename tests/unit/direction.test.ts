@@ -1,9 +1,8 @@
 import {
-  Direction,
   rotateClockwise,
   rotateCounterClockwise,
-  directionDelta,
-} from "../../src/models/direction";
+} from "../../src/lib/simulator";
+import { Direction, directionDelta } from "../../src/models/direction";
 
 describe("rotateClockwise", () => {
   it("rotates North → East", () =>

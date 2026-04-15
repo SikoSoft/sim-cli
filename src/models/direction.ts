@@ -5,23 +5,6 @@ export enum Direction {
   WEST = "WEST",
 }
 
-const CLOCKWISE_ORDER: readonly Direction[] = [
-  Direction.NORTH,
-  Direction.EAST,
-  Direction.SOUTH,
-  Direction.WEST,
-];
-
-export const rotateClockwise = (dir: Direction): Direction => {
-  const idx = CLOCKWISE_ORDER.indexOf(dir);
-  return CLOCKWISE_ORDER[(idx + 1) % 4];
-};
-
-export const rotateCounterClockwise = (dir: Direction): Direction => {
-  const idx = CLOCKWISE_ORDER.indexOf(dir);
-  return CLOCKWISE_ORDER[(idx + 3) % 4];
-};
-
 export interface Delta {
   readonly x: number;
   readonly y: number;

@@ -1,4 +1,5 @@
-import { Command, toCommand } from "../../src/models/command";
+import { toCommand } from "../../src/lib/parser";
+import { Command } from "../../src/models/command";
 
 describe("toCommand", () => {
   it("maps 0 → Quit", () => expect(toCommand(0)).toBe(Command.QUIT));

@@ -130,7 +130,7 @@ export class SimulationRunner {
   }
 }
 
-const handleFatalError = (err: unknown): never => {
+export const handleFatalError = (err: unknown): never => {
   if (err instanceof ParseError) {
     process.stderr.write(`Parse error: ${err.message}\n`);
     process.exit(1);

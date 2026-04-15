@@ -134,11 +134,11 @@ npm run test:coverage    # run with coverage report
 | `lib/parser.ts`    | 100%       | 100%     | 100%      |
 | `lib/table.ts`     | 100%       | 100%     | 100%      |
 | `lib/simulator.ts` | ~97%       | 80%      | 100%      |
-| `lib/reader.ts`    | ~79%       | ~79%     | ~67%      |
+| `lib/reader.ts`    | ~87%       | ~89%     | 75%       |
 
 ### Coverage gaps explained
 
-**`lib/reader.ts` (`runFromStdin` and `handleFatalError`)** — wires the real `process.stdin` readline interface and handles fatal errors at the process level. Not unit-tested because both require a live process boundary. The `SimulationRunner` class they delegate to is fully covered, and the integration tests exercise the full path via `SimulationRunner` directly.
+**`lib/reader.ts` (`runFromStdin`)** — wires the real `process.stdin` readline interface. Not unit-tested because it requires a live process boundary. The `SimulationRunner` class it delegates to is fully covered, and the integration tests exercise the full path via `SimulationRunner` directly.
 
 **`lib/simulator.ts` (`!handler` guard in `applyCommand`)** — unreachable through the public API because every `Command` enum value has a registered handler. Retained as a defensive fallback in case the handler map and the enum fall out of sync during future development.
 

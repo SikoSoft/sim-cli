@@ -29,6 +29,17 @@ const moveBy =
     };
   };
 
+/**
+ * Maps every non-quit Command to a pure handler function.
+ *
+ * Step 2 of adding a new command (step 1 is the Command enum in models/command.ts).
+ * Each handler receives the current SimulationState and returns the next one.
+ * The bounds check after each move is handled by applyCommand — handlers do not
+ * need to validate positions themselves.
+ *
+ * Note: this map is Partial because QUIT is handled separately in applyCommand.
+ * All other Command values must have an entry here or applyCommand silently no-ops.
+ */
 export const COMMAND_HANDLERS: Partial<Record<Command, CommandHandler>> = {
   [Command.MOVE_FORWARD]: moveBy(1),
   [Command.MOVE_BACKWARD]: moveBy(-1),

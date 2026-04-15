@@ -81,6 +81,8 @@ All of the following are equivalent:
 
 Unrecognised integers (anything outside 0–4) are silently ignored.
 
+See Extending section below for more information on adding additional commands.
+
 ---
 
 ## Output protocol

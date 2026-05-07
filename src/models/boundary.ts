@@ -1,4 +1,5 @@
 import { Position } from "./position";
+import { TableConfig } from "./simulation";
 
 /**
  * Defines the contract for checking whether a position is within the table boundary.
@@ -9,3 +10,5 @@ import { Position } from "./position";
 export interface BoundaryChecker {
   isInBounds(position: Position): boolean;
 }
+
+export type BoundaryFactory = (config: TableConfig) => BoundaryChecker;

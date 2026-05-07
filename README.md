@@ -248,3 +248,7 @@ All parsing lives in `src/lib/parser.ts`. Switching from the integer token proto
 | 4   | If stdin closes without a `0` command, the current position is returned as a success result. |
 | 5   | A starting position outside the table bounds is treated as an immediate failure (`-1 -1`).   |
 | 6   | Rotation commands do not move the object — only its facing direction changes.                |
+
+## To Fix
+
+- example.test.ts file shows red underline on "describe" & "it" (likely needing to install types)

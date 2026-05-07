@@ -5,7 +5,7 @@ import {
   parseTableConfig,
   tokenize,
 } from "./parser";
-import { RectangularTable } from "./table";
+import { defaultBoundaryFactory } from "./table";
 import { applyCommand, createInitialState } from "./simulator";
 import { InputPhase, OutputFn } from "../models/io";
 import {
@@ -13,10 +13,26 @@ import {
   SimulationState,
   TableConfig,
 } from "../models/simulation";
+import { BoundaryChecker, BoundaryFactory } from "../models/boundary";
 import { ParseError } from "./error";
 
+/** Formats a SimulationResult as "x y" on success or "-1 -1" on failure. */
 const formatResult = (result: SimulationResult): string =>
   result.success ? `${result.position.x} ${result.position.y}` : "-1 -1";
+
+type RunnerState =
+  | { readonly phase: InputPhase.AWAITING_TABLE; readonly buffer: string[] }
+  | {
+      readonly phase: InputPhase.AWAITING_POSITION;
+      readonly tableConfig: TableConfig;
+      readonly buffer: string[];
+    }
+  | {
+      readonly phase: InputPhase.RUNNING;
+      readonly simState: SimulationState;
+      readonly boundary: BoundaryChecker;
+    }
+  | { readonly phase: InputPhase.DONE };
 
 /**
  * Stateful simulation runner that processes stdin as a token stream.
@@ -33,18 +49,22 @@ const formatResult = (result: SimulationResult): string =>
  * commands are accepted.
  */
 export class SimulationRunner {
-  private phase: InputPhase = InputPhase.AWAITING_TABLE;
-  private headerBuffer: string[] = [];
-  private tableConfig?: TableConfig;
-  private state?: SimulationState;
-  private boundary?: RectangularTable;
+  private runnerState: RunnerState = {
+    phase: InputPhase.AWAITING_TABLE,
+    buffer: [],
+  };
 
-  constructor(private readonly output: OutputFn = console.log) {}
+  constructor(
+    private readonly output: OutputFn = console.log,
+    private readonly createBoundary: BoundaryFactory = defaultBoundaryFactory
+  ) {}
 
+  /** Returns true once the runner has emitted its result and will ignore further input. */
   get isDone(): boolean {
-    return this.phase === InputPhase.DONE;
+    return this.runnerState.phase === InputPhase.DONE;
   }
 
+  /** Tokenises a raw input line and drives each token through the state machine. */
   feed(rawLine: string): void {
     for (const token of tokenize(rawLine)) {
       if (this.isDone) {
@@ -54,43 +74,46 @@ export class SimulationRunner {
     }
   }
 
+  /** Advances the state machine by one token, transitioning phases and emitting output as appropriate. */
   private processToken(token: string): void {
-    switch (this.phase) {
-      case InputPhase.AWAITING_TABLE:
-        this.headerBuffer.push(token);
-        if (this.headerBuffer.length < 2) {
-          break;
-        }
-        this.tableConfig = parseTableConfig(this.headerBuffer.join(" "));
-        this.headerBuffer = [];
-        this.phase = InputPhase.AWAITING_POSITION;
+    switch (this.runnerState.phase) {
+      case InputPhase.AWAITING_TABLE: {
+        this.runnerState.buffer.push(token);
+        if (this.runnerState.buffer.length < 2) break;
+        const tableConfig = parseTableConfig(this.runnerState.buffer.join(" "));
+        this.runnerState = {
+          phase: InputPhase.AWAITING_POSITION,
+          tableConfig,
+          buffer: [],
+        };
         break;
+      }
 
       case InputPhase.AWAITING_POSITION: {
-        this.headerBuffer.push(token);
-        if (this.headerBuffer.length < 2) {
-          break;
-        }
-        const startPosition = parseStartPosition(this.headerBuffer.join(" "));
-        this.headerBuffer = [];
-        this.boundary = new RectangularTable(this.tableConfig!);
-        if (!this.boundary.isInBounds(startPosition)) {
+        this.runnerState.buffer.push(token);
+        if (this.runnerState.buffer.length < 2) break;
+        const { tableConfig } = this.runnerState;
+        const startPosition = parseStartPosition(
+          this.runnerState.buffer.join(" ")
+        );
+        const boundary = this.createBoundary(tableConfig);
+        if (!boundary.isInBounds(startPosition)) {
           this.emit({ success: false });
           return;
         }
-        this.state = createInitialState(this.tableConfig!, startPosition);
-        this.phase = InputPhase.RUNNING;
+        this.runnerState = {
+          phase: InputPhase.RUNNING,
+          simState: createInitialState(tableConfig, startPosition),
+          boundary,
+        };
         break;
       }
 
       case InputPhase.RUNNING: {
         const command = parseCommand(token);
-        if (command === null) {
-          return;
-        }
-
-        const result = applyCommand(this.state!, command, this.boundary!);
-
+        if (command === null) return;
+        const { simState, boundary } = this.runnerState;
+        const result = applyCommand(simState, command, boundary);
         if (result.failed) {
           this.emit({ success: false });
           return;
@@ -99,29 +122,37 @@ export class SimulationRunner {
           this.emit({ success: true, position: result.state.position });
           return;
         }
-
-        this.state = result.state;
+        this.runnerState = {
+          phase: InputPhase.RUNNING,
+          simState: result.state,
+          boundary,
+        };
         break;
       }
     }
   }
 
+  /**
+   * Called when the input stream closes. Emits the current position as a success result
+   * if the simulation was running but never received a QUIT command.
+   */
   finalize(): void {
-    if (this.phase === InputPhase.DONE) {
-      return;
-    }
-    if (!this.state) {
-      return;
-    }
-    this.emit({ success: true, position: this.state.position });
+    if (this.runnerState.phase === InputPhase.DONE) return;
+    if (this.runnerState.phase !== InputPhase.RUNNING) return;
+    this.emit({ success: true, position: this.runnerState.simState.position });
   }
 
+  /** Writes the formatted result to output and transitions the runner to the DONE phase. */
   private emit(result: SimulationResult): void {
     this.output(formatResult(result));
-    this.phase = InputPhase.DONE;
+    this.runnerState = { phase: InputPhase.DONE };
   }
 }
 
+/**
+ * Writes a parse or unexpected error to stderr and exits with code 1.
+ * Typed as `never` so callers can use it in positions that require a value.
+ */
 export const handleFatalError = (err: unknown): never => {
   if (err instanceof ParseError) {
     process.stderr.write(`Parse error: ${err.message}\n`);
@@ -131,6 +162,10 @@ export const handleFatalError = (err: unknown): never => {
   process.exit(1);
 };
 
+/**
+ * Wires a readline interface to a SimulationRunner, feeding lines as they arrive
+ * and calling finalize() when the stream closes.
+ */
 export const runFromStdin = (output: OutputFn = console.log): void => {
   const runner = new SimulationRunner(output);
   const lineReader = createInterface({ input: process.stdin, terminal: false });

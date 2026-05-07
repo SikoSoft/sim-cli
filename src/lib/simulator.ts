@@ -7,8 +7,8 @@ import {
   StepResult,
   TableConfig,
 } from "../models/simulation";
-import { BoundaryChecker } from "../models/boundary";
-import { RectangularTable } from "./table";
+import { BoundaryChecker, BoundaryFactory } from "../models/boundary";
+import { defaultBoundaryFactory } from "./table";
 
 const CLOCKWISE_ORDER: readonly Direction[] = [
   Direction.NORTH,
@@ -17,16 +17,19 @@ const CLOCKWISE_ORDER: readonly Direction[] = [
   Direction.WEST,
 ];
 
+/** Returns the direction 90° clockwise from the given direction. */
 export const rotateClockwise = (dir: Direction): Direction => {
   const idx = CLOCKWISE_ORDER.indexOf(dir);
   return CLOCKWISE_ORDER[(idx + 1) % 4];
 };
 
+/** Returns the direction 90° counter-clockwise from the given direction. */
 export const rotateCounterClockwise = (dir: Direction): Direction => {
   const idx = CLOCKWISE_ORDER.indexOf(dir);
   return CLOCKWISE_ORDER[(idx + 3) % 4];
 };
 
+/** Returns a CommandHandler that moves the object `steps` cells in its current facing direction. */
 const moveBy =
   (steps: number): CommandHandler =>
   (state) => {
@@ -61,6 +64,10 @@ export const COMMAND_HANDLERS: Partial<Record<Command, CommandHandler>> = {
   }),
 };
 
+/**
+ * Applies a single command to the current simulation state.
+ * Returns a StepResult indicating whether the run is done, has failed (out of bounds), or continues.
+ */
 export const applyCommand = (
   state: SimulationState,
   command: Command,
@@ -75,11 +82,12 @@ export const applyCommand = (
     return { state, done: false, failed: false };
   }
 
-  const newState = handler(state, boundary);
+  const newState = handler(state);
   const failed = !boundary.isInBounds(newState.position);
   return { state: newState, done: false, failed };
 };
 
+/** Creates the initial SimulationState for a run, with direction set to NORTH. */
 export const createInitialState = (
   tableConfig: TableConfig,
   startPosition: Position
@@ -89,12 +97,18 @@ export const createInitialState = (
   tableConfig,
 });
 
+/**
+ * Runs a complete simulation from start position through all commands.
+ * Returns success with the final position, or failure if the start position is out of bounds
+ * or any move leaves the table.
+ */
 export const runSimulation = (
   tableConfig: TableConfig,
   startPosition: Position,
-  commands: readonly Command[]
+  commands: readonly Command[],
+  createBoundary: BoundaryFactory = defaultBoundaryFactory
 ): SimulationResult => {
-  const boundary = new RectangularTable(tableConfig);
+  const boundary = createBoundary(tableConfig);
 
   if (!boundary.isInBounds(startPosition)) {
     return { success: false };

@@ -1,4 +1,3 @@
-import { BoundaryChecker } from "./boundary";
 import { SimulationState } from "./simulation";
 
 /**
@@ -17,7 +16,4 @@ export enum Command {
   ROTATE_COUNTER_CLOCKWISE = 4,
 }
 
-export type CommandHandler = (
-  state: SimulationState,
-  boundary: BoundaryChecker
-) => SimulationState;
+export type CommandHandler = (state: SimulationState) => SimulationState;
